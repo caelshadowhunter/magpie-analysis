@@ -100,7 +100,9 @@ class Rogowskis:
         #rogowski 1 and 2      
         self.bd1=ScopeChannel(shot, '2', 'c1')
         self.bd2=ScopeChannel(shot, '2', 'c2')
-    def truncate(self, threshold=0.2, window=1000, cal=[10*10.4*3e9,-10.48*10.79*3e9]):
+    def truncate(self, threshold=0.5, window=1000, cal=[10*10.4*3e9,-10.48*10.79*3e9]):
+    #def truncate(self, threshold=0.2, window=1000, cal=[10*10.4*3e9,-10.48*10.79*3e9]):
+        
         #find the start of the current pulse with a  high threshold
         sig1=self.bd1.data
         start=np.nonzero(abs(sig1)>threshold)[0][0]
