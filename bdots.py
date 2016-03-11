@@ -5,7 +5,7 @@ import scipy.integrate
 
 class ScopeChannel:
     def __init__(self, shot, scope, channel):
-        fn="//LINNA/scopes/scope"+scope+"_"+shot
+        fn="C:/Users/Sav/Documents/Jack_Caitlin_Sav/scopedata/scope"+scope+"_"+shot
         self.time=np.loadtxt(fn+"time")
         self.data=np.loadtxt(fn+"_"+channel)[1:]
                 
@@ -111,20 +111,31 @@ class Rogowskis:
         z2=np.mean(self.bd2.data[0:200])
         self.bd1_tr=(self.bd1.data[self.start:self.start+window]-z1)*cal[0]
         self.bd2_tr=(self.bd2.data[self.start:self.start+window]-z2)*cal[1]
-    def integrate(self, return_posts=8):
+    def integrate(self, return_posts=8, min_signal=5e4):
         self.I1=scipy.integrate.cumtrapz(self.bd1_tr,self.time)/1e9
         self.I2=scipy.integrate.cumtrapz(self.bd2_tr,self.time)/1e9
-        if self.I2.max()<5e4:
+        #check currents are positive:
+        i1=self.I1
+        if np.abs(self.I1.max())<np.abs(self.I1.min()):
+            self.I1=-self.I1
+        if np.abs(self.I2.max())<np.abs(self.I2.min()):
+            self.I2=-self.I2
+        #check that tehre's signal
+        if self.I2.max()<min_signal:
             self.I_Tot=self.I1*return_posts
             print(self.shot+": using Rog 1 only")
-        if self.I1.max()<5e4:
+        if self.I1.max()<min_signal:
             self.I_Tot=self.I2*return_posts
             print(self.shot+": using Rog 2 only")
         if self.I1.max()>5e4 and self.I2.max()>5e4:
             self.I_Tot=(self.I1+self.I2)*return_posts/2.0
             print(self.shot+": using both Rogs")
+        self.I_Tot1 = self.I1*return_posts
+        self.I_Tot2 = self.I2*return_posts
         self.time_I=self.time[:-1]
-    def plot(self, data, ax=None, scale=1, bdname=None):
+        t0=self.time_I[np.where(self.I_Tot>2e3)[0][0]]
+        self.time_0ed=self.time_I-t0
+    def plot(self, data, ax=None, scale=1, bdname=None, plotSep=False):
         if ax is None:
             fig, ax=plt.subplots()
         if data is "raw":
@@ -147,9 +158,28 @@ class Rogowskis:
             l2='R2 Current'
         if data is "I_Tot":
             t=self.time_I
-            d1=self.I_Tot
-            d2=None
-            l1=self.shot+' Current'
+            if plotSep:
+                d1=self.I_Tot1
+                d2=self.I_Tot2
+                l1=self.shot+'current_1'
+                l2=self.shot+'current_2'
+                print ("Option to plot seperatly was invoked")
+            else:
+                d1=self.I_Tot    
+                d2=None
+                l1=self.shot+' Current'
+        if data is "I_Tot0":
+            t=self.time_0ed
+            if plotSep:
+                d1=self.I_Tot1
+                d2=self.I_Tot2
+                print ("Option to plot seperatly was invoked")
+                l1=self.shot+'current_1'
+                l2=self.shot+'current_2'
+            else:
+                d1=self.I_Tot
+                d2=None
+                l1=self.shot+' Current'
         ax.plot(t, scale*d1, label=l1, lw=4)
         if d2 is not None:
             ax.plot(t, scale*d2, label=l2, lw=4)
